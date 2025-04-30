@@ -1,9 +1,14 @@
-import { DefaultTheme } from 'vitepress/theme';
-import { initializeKeycloak } from '../../auth';  // Adjust path if needed
+import { DefaultTheme } from 'vitepress/theme'
 
 export default {
   ...DefaultTheme,
   enhanceApp({ app }) {
-    initializeKeycloak();  // 👈 Initialize Keycloak when app loads
+    if (typeof window !== 'undefined') {
+      import('../../auth').then(({ initializeKeycloak }) => {
+        initializeKeycloak()
+      }).catch(err => {
+        console.error('Failed to load Keycloak:', err)
+      })
+    }
   }
 }
