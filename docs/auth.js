@@ -1,9 +1,9 @@
 import Keycloak from 'keycloak-js';
 
 const keycloak = new Keycloak({
-    url: 'https://localhost:8080', // Your Keycloak server URL
-    realm: 'master',                 // Your Keycloak realm
-    clientId: 'vitepress-site',                // Your Keycloak client ID
+    url: 'https://kc.axondevspace.work/', // Your Keycloak server URL
+    realm: 'AxonDocs',                 // Your Keycloak realm
+    clientId: 'axon_pay',                // Your Keycloak client ID
 });
 
 export async function initializeKeycloak() {
