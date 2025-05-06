@@ -4,104 +4,154 @@ import { state } from '../../auth' // Adjust path if necessary
 
 const keycloak = inject('keycloak')
 const isComponentReady = ref(false)
+const isDropdownOpen = ref(false)
 
 const isAuthenticated = computed(() => {
-    return state.isReady && keycloak && state.authenticated === true;
+  return state.isReady && keycloak && state.authenticated === true
 })
 
 const isLoading = computed(() => {
-    return !state.isReady || !isComponentReady.value;
+  return !state.isReady || !isComponentReady.value
 })
 
+const toggleDropdown = () => {
+  isDropdownOpen.value = !isDropdownOpen.value
+}
+
 const logout = () => {
-    if (keycloak) {
-        console.log('Initiating logout');
-        state.authenticated = false; // Reset state on logout
-        keycloak.logout();
-    }
+  if (keycloak) {
+    console.log('Initiating logout')
+    state.authenticated = false
+    keycloak.logout()
+    isDropdownOpen.value = false
+  }
 }
 
 onMounted(() => {
-    console.log('LogoutButton mounted, keycloak:', keycloak);
-    console.log('Initial state - isReady:', state.isReady, 'isAuthenticated:', isAuthenticated.value);
+  console.log('LogoutDropdown mounted, keycloak:', keycloak)
+  console.log('Initial state - isReady:', state.isReady, 'isAuthenticated:', isAuthenticated.value)
 
-    // Poll for Keycloak initialization
-    const checkReady = setInterval(() => {
-        if (state.isReady) {
-            console.log('Keycloak ready detected, isAuthenticated:', isAuthenticated.value);
-            isComponentReady.value = true;
-            clearInterval(checkReady);
-        }
-    }, 100);
+  const checkReady = setInterval(() => {
+    if (state.isReady) {
+      console.log('Keycloak ready detected, isAuthenticated:', isAuthenticated.value)
+      isComponentReady.value = true
+      clearInterval(checkReady)
+    }
+  }, 100)
+
+  // Close dropdown when clicking outside
+  document.addEventListener('click', (event) => {
+    const dropdown = document.querySelector('.dropdown-container')
+    if (dropdown && !dropdown.contains(event.target)) {
+      isDropdownOpen.value = false
+    }
+  })
 })
 
 watch([isAuthenticated, () => state.isReady], ([newAuth, newReady]) => {
-    console.log('State changed - isAuthenticated:', newAuth, 'isReady:', newReady);
-    if (newReady) {
-        isComponentReady.value = true;
-    }
+  console.log('State changed - isAuthenticated:', newAuth, 'isReady:', newReady)
+  if (newReady) {
+    isComponentReady.value = true
+  }
 })
 </script>
 
 <template>
-  <div class="logout-container">
-    <span v-if="isLoading" class="loading-text">Loading...</span>
+  <div class="dropdown-container" v-if="!isLoading">
     <button
-      v-else-if="isAuthenticated"
-      @click="logout"
-      class="logout-button"
+      v-if="isAuthenticated"
+      @click="toggleDropdown"
+      class="avatar-button"
+      aria-label="User menu"
     >
-      <svg class="logout-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-        <polyline points="16 17 21 12 16 7"></polyline>
-        <line x1="21" y1="12" x2="9" y2="12"></line>
+      <svg class="user-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+        <circle cx="12" cy="7" r="4"></circle>
       </svg>
-      Logout
     </button>
     <span v-else class="not-authenticated-text">Not authenticated</span>
+
+    <transition name="dropdown">
+      <div v-if="isDropdownOpen && isAuthenticated" class="dropdown-menu">
+        <button @click="logout" class="logout-button">
+          <svg class="logout-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+          Logout
+        </button>
+      </div>
+    </transition>
+  </div>
+  <div v-else class="loading-container">
+    <span class="loading-text">Loading...</span>
   </div>
 </template>
 
 <style scoped>
-.logout-container {
+.dropdown-container {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  margin-right: 20px !important;
-  padding-right: 8px !important;
-  gap: 8px;
+  margin-right: 24px;
+  margin-left: 16px; /* Added to create space from the theme switch icon */
 }
 
-/* Target the last item in the navbar flexbox */
-:where(.VPNavBar .items):last-child .logout-container {
-  margin-right: 24px !important;
+.avatar-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  background: var(--vp-c-bg-alt);
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
 
-/* Override navbar flexbox gap and adjust padding for last item */
-:where(.VPNavBar .items) {
-  gap: 16px !important;
-  padding-right: 24px !important; /* Add padding to the right of the last item */
+.avatar-button:hover {
+  background: var(--vp-c-brand-light);
+  border-color: var(--vp-c-brand);
 }
 
-/* Target the theme switch button directly */
-:where(.VPNavBar .appearance .VPSwitchAppearance) {
-  margin-right: 16px !important;
+.user-icon {
+  width: 24px;
+  height: 24px;
+  stroke: var(--vp-c-text-1);
+  transition: stroke 0.3s ease;
 }
 
-/* Ensure the slot respects the margin */
-:where(.VPNavBar .nav-bar-content-after) .logout-container {
-  margin-right: 20px !important;
+.avatar-button:hover .user-icon {
+  stroke: var(--vp-c-brand);
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 48px;
+  right: 0;
+  background: var(--vp-c-bg);
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 8px;
+  min-width: 140px;
+  z-index: 1000;
 }
 
 .logout-button {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
   font-size: 14px;
   font-weight: 500;
   color: var(--vp-c-text-1);
   background: transparent;
-  border: 1px solid var(--vp-c-divider);
+  border: none;
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -109,7 +159,6 @@ watch([isAuthenticated, () => state.isReady], ([newAuth, newReady]) => {
 
 .logout-button:hover {
   background: var(--vp-c-bg-alt);
-  border-color: var(--vp-c-brand);
   color: var(--vp-c-brand);
 }
 
@@ -123,37 +172,69 @@ watch([isAuthenticated, () => state.isReady], ([newAuth, newReady]) => {
   stroke: var(--vp-c-brand);
 }
 
+.loading-container {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 24px;
+  margin-left: 16px; /* Added for consistency with dropdown-container */
+}
+
 .loading-text,
 .not-authenticated-text {
   font-size: 14px;
   color: var(--vp-c-text-2);
 }
 
+/* Ensure spacing between theme switch and dropdown in navbar */
+:where(.VPNavBar .items) {
+  gap: 16px !important; /* Ensure consistent gap between navbar items */
+}
+
+:where(.VPNavBar .appearance .VPSwitchAppearance) {
+  margin-right: 0 !important; /* Remove extra margin to rely on gap */
+}
+
+/* Dropdown animation */
+.dropdown-enter-active,
+.dropdown-leave-active {
+  transition: all 0.2s ease;
+}
+
+.dropdown-enter-from,
+.dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+/* Responsive design */
 @media (max-width: 640px) {
-  .logout-container {
-    margin-right: 12px !important;
-    padding-right: 4px !important;
+  .dropdown-container,
+  .loading-container {
+    margin-right: 16px;
+    margin-left: 12px; /* Adjusted for smaller screens */
   }
-  :where(.VPNavBar .items):last-child .logout-container {
-    margin-right: 16px !important;
+  .avatar-button {
+    width: 36px;
+    height: 36px;
   }
-  :where(.VPNavBar .items) {
-    gap: 10px !important;
-    padding-right: 16px !important;
+  .user-icon {
+    width: 20px;
+    height: 20px;
   }
-  :where(.VPNavBar .appearance .VPSwitchAppearance) {
-    margin-right: 10px !important;
-  }
-  :where(.VPNavBar .nav-bar-content-after) .logout-container {
-    margin-right: 12px !important;
+  .dropdown-menu {
+    top: 44px;
+    min-width: 120px;
   }
   .logout-button {
-    padding: 2px 6px;
-    font-size: 12px;
+    padding: 6px 10px;
+    font-size: 13px;
   }
   .logout-icon {
     width: 14px;
     height: 14px;
+  }
+  :where(.VPNavBar .items) {
+    gap: 10px !important; /* Smaller gap for mobile */
   }
 }
 </style>
